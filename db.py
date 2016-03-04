@@ -1,7 +1,6 @@
 import sqlite3, logging
 
-DB_SCHEMA =
-'''
+DB_SCHEMA = '''
 
 
 '''

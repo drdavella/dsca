@@ -57,7 +57,7 @@ def main():
         db_path = create_database()
 
     db = Database(db_path)
-    gui = Gui()
+    gui = Gui("DSC Analyzer")
 
 
 if __name__ == "__main__":

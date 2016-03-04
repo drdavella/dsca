@@ -3,10 +3,13 @@ import logging
 
 
 class Gui():
-    def __init__(self):
+    def __init__(self,title=""):
         '''
         Initializes tk GUI to be used by the application.
+
+        @param title Optional window title
         '''
-        self.root = tk.Tk()
         logging.info("creating GUI")
+        self.root = tk.Tk()
+        if title: self.root.wm_title(title)
         self.root.mainloop()
