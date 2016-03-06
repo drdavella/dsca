@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
-import tkinter as tk
-import sys, os, sqlite3, logging
+import sys, os, logging
 from db import Database
 from gui import Gui
 
@@ -8,7 +7,7 @@ DB_PATH = "~/.dsc_anaylsis"
 DB_NAME = "data.sqlite"
 
 logging.basicConfig(format="%(levelname)s %(asctime)s %(message)s",
-        level=logging.INFO,datefmt="%Y-%d-%m %H:%M:%S")
+        level=logging.DEBUG,datefmt="%Y-%d-%m %H:%M:%S")
 
 
 def find_database():
@@ -46,7 +45,7 @@ def create_database():
         logging.critical("database already exists")
         sys.exit(1)
     logging.info("creating database: {}".format(db_fullpath))
-    Database.write_db_schema(db_fullpath)
+    Database.create_database(db_fullpath)
     return db_fullpath
 
 
@@ -57,7 +56,7 @@ def main():
         db_path = create_database()
 
     db = Database(db_path)
-    gui = Gui("DSC Analyzer")
+    gui = Gui(db,"DSC Analyzer")
 
 
 if __name__ == "__main__":
