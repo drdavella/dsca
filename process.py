@@ -320,7 +320,11 @@ def main():
     # patience to figure out how right now (tried using tex)
     plt.ylabel('Load (micro Newtons)')
     plt.xlabel('Time (s)')
-    plt.show()
+    try:
+        plt.show()
+    # cleaner handling of keyboard interrupt while plotting
+    except KeyboardInterrupt:
+        plt.close()
 
 
 if __name__ == "__main__":
