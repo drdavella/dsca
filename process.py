@@ -49,6 +49,13 @@ class DataSample():
     Class representing a single sample from a data point file.
     '''
     def __init__(self,time,depth,load):
+        '''
+        Constructor for a DataSample object
+
+        @param time     Time (in seconds)
+        @param depth    Depth (in nanometers)
+        @param load     Load (in micro Newtons)
+        '''
         self.time = time
         self.depth = depth
         self.load = load
@@ -138,6 +145,13 @@ def write_summary_file(path,points,header):
 
 def read_datapoint_file(filename):
     '''
+    Reads and parses data point file with the given filename.
+    Returns a list of DataSample objects representing the samples
+    in this file.
+
+    @param filename     Path to the data point file to be parsed 
+
+    @return     List of DataSample objects
     '''
     samples = list()
     # check if the file exists
