@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import sys, os, codecs, math
 from argparse import ArgumentParser
+from scipy import stats
 import matplotlib.pyplot as plt
 from matplotlib import style
 
@@ -226,7 +227,19 @@ def main():
     else:
         datadir = os.path.dirname(os.path.abspath(sumfile))
     # use Z threshold from the command line, if provided
-    zthresh = args.sdev if args.sdev else DEFAULT_Z_THRESH
+    if args.sdev:
+        if args.sdev < 0:
+            exitmsg("invalid Z score: {}".format(args.sdev))
+        zthresh = args.sdev
+    elif args.pval:
+        if args.pval < 0 or args.pval > 1:
+            exitmsg("invalid p value: {}".format(args.pval))
+        # we're doing a two-tailed test here
+        tails = 1 - args.pval
+        zthresh = stats.norm.ppf(args.pval + tails/2)
+        print("zthresh={}".format(zthresh))
+    else:
+        zthresh = DEFAULT_Z_THRESH
 
     # we'll use the header line when we write out the new files
     print("parsing summary file")
