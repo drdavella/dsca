@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#! python3
 import sys, os, codecs, math
 from argparse import ArgumentParser
 from scipy import stats
@@ -310,16 +310,22 @@ def main():
     t = [x.time for x in best_samples]
     d = [x.depth for x in best_samples]
     l = [x.load for x in best_samples]
-    dplot = plt.subplot(211)
+    fdplot = plt.subplot(211)
     plt.title('Best Point: {}'.format(p.fname))
-    plt.plot(t,d, color='#170323') # depth against time
-    plt.ylabel('Depth (nm)')
-    lplot = plt.subplot(212, sharex=dplot)
-    plt.plot(t,l) # load against time
+    plt.plot(d,l, color='#170323') # force vs displacement
+    plt.ylabel('Load ($\mu$N)')
+    plt.xlabel('Depth (nm)')
+
+    rateplot1 = plt.subplot(212)#, sharex=dplot)
+    rateplot2 = rateplot1.twinx()
+    rateplot1.plot(t,l) # load against time
+    rateplot2.plot(t,d, color='#740001') # displacement vs time
     # it should be possible to print a mu, but I don't have the
     # patience to figure out how right now (tried using tex)
-    plt.ylabel('Load (micro Newtons)')
-    plt.xlabel('Time (s)')
+    # mu is expressed by $\mu$
+    rateplot1.set_ylabel('Load ($\mu$N)')
+    rateplot2.set_ylabel('Depth (nm)', color='#740001')
+    rateplot1.set_xlabel('Time (s)')
     try:
         plt.show()
     # cleaner handling of keyboard interrupt while plotting
