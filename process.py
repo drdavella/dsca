@@ -1,4 +1,4 @@
-#! python3
+#!/usr/bin/env python3
 import sys, os, codecs, math
 from argparse import ArgumentParser
 from scipy import stats
