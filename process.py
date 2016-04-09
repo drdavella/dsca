@@ -201,8 +201,23 @@ def calculate_stats(samples,samplevar=True):
     return (mean,sdev)
 
 
-def process_file(filename,datadir,zthresh):
+def process_file(filename,datadir,zthresh,write_out=True):
     '''
+    Takes path to summary file as input, determines outliers based on given
+    Z-score threshold, finds the most representative data point from the
+    given data directory, and returns data structure representing that point,
+    along with a list of the associated samples. Optionally writes new summary
+    files representing the good points and outliers, respectively.
+
+    @param filename     Path to summary file
+    @param datadir      Directory path where associated data point files are found
+    @param zthresh      Z-score threshold to use when determining outliers
+    @param write_out    Write new summary files (defaults to True)
+
+    The new summary files will be written to the same directory where the
+    given summary file exists.
+
+    @return best_point, best_samples
     '''
     header,data = read_summary_file(filename)
     # do these data points represent full populations or sample sets?
@@ -235,18 +250,19 @@ def process_file(filename,datadir,zthresh):
             continue
         valid_points.append(x)
 
-    # use the same output directory as where the summary file lives
-    outdir,basename = os.path.split(os.path.abspath(filename))
-    # how standard is the summary file name? this might have to change
-    data_name = basename.split()[0]
-    # write the processed (clean) summary file
-    clean_name = "{}/{}_clean.txt".format(outdir,data_name)
-    print("writing processed data to {}".format(clean_name))
-    write_summary_file(clean_name,valid_points,header)
-    # write the outlier summary file (is this necessary?)
-    outlier_name = "{}/{}_outliers.txt".format(outdir,data_name)
-    print("writing outliers to {}".format(outlier_name))
-    write_summary_file(outlier_name,outliers,header)
+    if write_out:
+        # use the same output directory as where the summary file lives
+        outdir,basename = os.path.split(os.path.abspath(filename))
+        # how standard is the summary file name? this might have to change
+        data_name = basename.split()[0]
+        # write the processed (clean) summary file
+        clean_name = "{}/{}_clean.txt".format(outdir,data_name)
+        print("writing processed data to {}".format(clean_name))
+        write_summary_file(clean_name,valid_points,header)
+        # write the outlier summary file (is this necessary?)
+        outlier_name = "{}/{}_outliers.txt".format(outdir,data_name)
+        print("writing outliers to {}".format(outlier_name))
+        write_summary_file(outlier_name,outliers,header)
 
     # find the most representative point
     best_score = float('inf')
@@ -270,6 +286,16 @@ def process_file(filename,datadir,zthresh):
 
 def graph_one(point,samples):
     '''
+    Graphs a plot representing data from a single point. One subgraph
+    represents load vs depth, and the other represents load vs time
+    and depth vs time.
+
+    @point      DataLine object representing a single point
+    @samples    List of DataSample objects representing data associated
+                with this point
+
+    This routine will not actually show the graph: that is the responsibility
+    of the calling routine.
     '''
     style.use('bmh')
     t = [x.time for x in samples]
@@ -288,11 +314,6 @@ def graph_one(point,samples):
     rateplot1.set_ylabel('Load ($\mu$N)')
     rateplot2.set_ylabel('Depth (nm)', color='#740001')
     rateplot1.set_xlabel('Time (s)')
-    try:
-        plt.show()
-    # cleaner handling of keyboard interrupt while plotting
-    except KeyboardInterrupt:
-        plt.close()
 
 
 def main():
@@ -340,6 +361,11 @@ def main():
     point, samples = process_file(sumfile,datadir,zthresh)
     print("graphing the most representative data point file")
     graph_one(point,samples)
+    try:
+        plt.show()
+    # cleaner handling of keyboard interrupt while plotting
+    except KeyboardInterrupt:
+        plt.close()
 
 
 if __name__ == "__main__":
