@@ -201,6 +201,100 @@ def calculate_stats(samples,samplevar=True):
     return (mean,sdev)
 
 
+def process_file(filename,datadir,zthresh):
+    '''
+    '''
+    header,data = read_summary_file(filename)
+    # do these data points represent full populations or sample sets?
+    (depth_mean, depth_sdev) = calculate_stats([x.depth for x in data])
+    (stiff_mean, stiff_sdev) = calculate_stats([x.stiff for x in data])
+    (hard_mean, hard_sdev) = calculate_stats([x.hard for x in data])
+
+    # weed out the outliers
+    valid_points = list()
+    outliers = list()
+    for x in data:
+        # NOTE: The statistics for this might not be exactly right. 
+        # I'm trying to do a Z-test here, but according to Wikipedia,
+        # to properly do a Z test it is necessary to have a population
+        # mean and standard deviation, and it seems like we only have
+        # a sample mean and standard deviation. I really don't know
+        # enough to say how badly this fudges the stats though.
+        depth_score = (x.depth - depth_mean) / depth_sdev
+        stiff_score = (x.stiff - stiff_mean) / stiff_sdev
+        hard_score = (x.hard - hard_mean) / hard_sdev
+        # reject data points if any of these scores exceeds the threshold
+        if abs(depth_score) >= zthresh:
+            outliers.append(x)
+            continue
+        if abs(stiff_score) >= zthresh:
+            outliers.append(x)
+            continue
+        if abs(hard_score) >= zthresh:
+            outliers.append(x)
+            continue
+        valid_points.append(x)
+
+    # use the same output directory as where the summary file lives
+    outdir,basename = os.path.split(os.path.abspath(filename))
+    # how standard is the summary file name? this might have to change
+    data_name = basename.split()[0]
+    # write the processed (clean) summary file
+    clean_name = "{}/{}_clean.txt".format(outdir,data_name)
+    print("writing processed data to {}".format(clean_name))
+    write_summary_file(clean_name,valid_points,header)
+    # write the outlier summary file (is this necessary?)
+    outlier_name = "{}/{}_outliers.txt".format(outdir,data_name)
+    print("writing outliers to {}".format(outlier_name))
+    write_summary_file(outlier_name,outliers,header)
+
+    # find the most representative point
+    best_score = float('inf')
+    best_point = None
+    best_samples = list()
+    print("finding best representative data point file")
+    for p in valid_points:
+        # NOTE: This is an extremely naive way to compute a similarity
+        # score. Once a better way has been determined, this will need
+        # to be updated.
+        datapath = "{}/{}".format(datadir,p.fname)
+        samples = read_datapoint_file(datapath)
+        mean,_ = calculate_stats([x.depth for x in samples])
+        score = abs(mean - depth_mean)
+        if score < best_score:
+            best_score = score
+            best_point = p
+            best_samples = samples
+    return best_point,best_samples
+
+
+def graph_one(point,samples):
+    '''
+    '''
+    style.use('bmh')
+    t = [x.time for x in samples]
+    d = [x.depth for x in samples]
+    l = [x.load for x in samples]
+    fdplot = plt.subplot(211)
+    plt.title('Best Point: {}'.format(point.fname))
+    plt.plot(d,l, color='#170323') # force vs displacement
+    plt.ylabel('Load ($\mu$N)')
+    plt.xlabel('Depth (nm)')
+
+    rateplot1 = plt.subplot(212)#, sharex=dplot)
+    rateplot2 = rateplot1.twinx()
+    rateplot1.plot(t,l) # load against time
+    rateplot2.plot(t,d, color='#740001') # displacement vs time
+    rateplot1.set_ylabel('Load ($\mu$N)')
+    rateplot2.set_ylabel('Depth (nm)', color='#740001')
+    rateplot1.set_xlabel('Time (s)')
+    try:
+        plt.show()
+    # cleaner handling of keyboard interrupt while plotting
+    except KeyboardInterrupt:
+        plt.close()
+
+
 def main():
     # argument parsing and processing
     p = ArgumentParser()
@@ -242,95 +336,10 @@ def main():
         zthresh = DEFAULT_Z_THRESH
 
     # we'll use the header line when we write out the new files
-    print("parsing summary file")
-    header,data = read_summary_file(sumfile)
-    # do these data points represent full populations or sample sets?
-    (depth_mean, depth_sdev) = calculate_stats([x.depth for x in data])
-    (stiff_mean, stiff_sdev) = calculate_stats([x.stiff for x in data])
-    (hard_mean, hard_sdev) = calculate_stats([x.hard for x in data])
-
-    # weed out the outliers
-    valid_points = list()
-    outliers = list()
-    for x in data:
-        # NOTE: The statistics for this might not be exactly right. 
-        # I'm trying to do a Z-test here, but according to Wikipedia,
-        # to properly do a Z test it is necessary to have a population
-        # mean and standard deviation, and it seems like we only have
-        # a sample mean and standard deviation. I really don't know
-        # enough to say how badly this fudges the stats though.
-        depth_score = (x.depth - depth_mean) / depth_sdev
-        stiff_score = (x.stiff - stiff_mean) / stiff_sdev
-        hard_score = (x.hard - hard_mean) / hard_sdev
-        # reject data points if any of these scores exceeds the threshold
-        if abs(depth_score) >= zthresh:
-            outliers.append(x)
-            continue
-        if abs(stiff_score) >= zthresh:
-            outliers.append(x)
-            continue
-        if abs(hard_score) >= zthresh:
-            outliers.append(x)
-            continue
-        valid_points.append(x)
-
-    # use the same output directory as where the summary file lives
-    outdir,basename = os.path.split(os.path.abspath(sumfile))
-    # how standard is the summary file name? this might have to change
-    data_name = basename.split()[0]
-    # write the processed (clean) summary file
-    clean_name = "{}/{}_clean.txt".format(outdir,data_name)
-    print("writing processed data to {}".format(clean_name))
-    write_summary_file(clean_name,valid_points,header)
-    # write the outlier summary file (is this necessary?)
-    outlier_name = "{}/{}_outliers.txt".format(outdir,data_name)
-    print("writing outliers to {}".format(outlier_name))
-    write_summary_file(outlier_name,outliers,header)
-
-    # find the most representative point
-    best_score = float('inf')
-    best_point = None
-    best_samples = list()
-    print("finding best representative data point file")
-    for p in valid_points:
-        # NOTE: This is an extremely naive way to compute a similarity
-        # score. Once a better way has been determined, this will need
-        # to be updated.
-        datapath = "{}/{}".format(datadir,p.fname)
-        samples = read_datapoint_file(datapath)
-        mean,_ = calculate_stats([x.depth for x in samples])
-        score = abs(mean - depth_mean)
-        if score < best_score:
-            best_score = score
-            best_point = p
-            best_samples = samples
-
+    print("processing summary file")
+    point, samples = process_file(sumfile,datadir,zthresh)
     print("graphing the most representative data point file")
-    style.use('bmh')
-    t = [x.time for x in best_samples]
-    d = [x.depth for x in best_samples]
-    l = [x.load for x in best_samples]
-    fdplot = plt.subplot(211)
-    plt.title('Best Point: {}'.format(p.fname))
-    plt.plot(d,l, color='#170323') # force vs displacement
-    plt.ylabel('Load ($\mu$N)')
-    plt.xlabel('Depth (nm)')
-
-    rateplot1 = plt.subplot(212)#, sharex=dplot)
-    rateplot2 = rateplot1.twinx()
-    rateplot1.plot(t,l) # load against time
-    rateplot2.plot(t,d, color='#740001') # displacement vs time
-    # it should be possible to print a mu, but I don't have the
-    # patience to figure out how right now (tried using tex)
-    # mu is expressed by $\mu$
-    rateplot1.set_ylabel('Load ($\mu$N)')
-    rateplot2.set_ylabel('Depth (nm)', color='#740001')
-    rateplot1.set_xlabel('Time (s)')
-    try:
-        plt.show()
-    # cleaner handling of keyboard interrupt while plotting
-    except KeyboardInterrupt:
-        plt.close()
+    graph_one(point,samples)
 
 
 if __name__ == "__main__":
