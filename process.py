@@ -219,6 +219,7 @@ def process_file(filename,datadir,zthresh,write_out=True):
 
     @return best_point, best_samples
     '''
+    # we use the header line if/when we write out new summary files
     header,data = read_summary_file(filename)
     # do these data points represent full populations or sample sets?
     (depth_mean, depth_sdev) = calculate_stats([x.depth for x in data])
@@ -284,20 +285,50 @@ def process_file(filename,datadir,zthresh,write_out=True):
     return best_point,best_samples
 
 
+def add_to_multigraph(point,samples):
+    '''
+    Add the given point to the multi-point plot. Plots the given samples with
+    depth vs load.
+
+    @param point    DataLine object representing the given point
+    @param samples  List of DataSamples representing the data to be plotted
+
+    This routine will not actually show the graph: that is the responsibility
+    of the calling routine.
+    '''
+    d = [x.depth for x in samples]
+    l = [x.load for x in samples]
+    plt.plot(d,l,label=point.fname)
+    plt.ylabel('Load ($\mu$N)')
+    plt.xlabel('Depth (nm)')
+
+
+def create_stiff_table(points):
+    '''
+    Adds a subplot to the global plot that is a table displaying the
+    associated average stiffness value for each of the given points.
+
+    @param points   List of DataLine objects representing the average
+                    stiffness values to be included in the table
+
+    This routine will not actually show the graph: that is the responsibility
+    of the calling routine.
+    '''
+
+
 def graph_one(point,samples):
     '''
     Graphs a plot representing data from a single point. One subgraph
     represents load vs depth, and the other represents load vs time
     and depth vs time.
 
-    @point      DataLine object representing a single point
-    @samples    List of DataSample objects representing data associated
-                with this point
+    @param point    DataLine object representing a single point
+    @param samples  List of DataSample objects representing data associated
+                    with this point
 
     This routine will not actually show the graph: that is the responsibility
     of the calling routine.
     '''
-    style.use('bmh')
     t = [x.time for x in samples]
     d = [x.depth for x in samples]
     l = [x.load for x in samples]
@@ -319,7 +350,7 @@ def graph_one(point,samples):
 def main():
     # argument parsing and processing
     p = ArgumentParser()
-    p.add_argument('summary_file',type=str,nargs=1)
+    p.add_argument('summary_files',type=str,nargs='+')
     p.add_argument('-d','--data-dir',action='store',dest='datadir',type=str,
             help='directory containing data points ' \
                  '(defaults to same directory as summary file)')
@@ -331,16 +362,12 @@ def main():
     if args.pval and args.sdev:
         exitmsg("--pval and --sdev are not compatible")
 
-    sumfile = args.summary_file[0]
     # where do the data point files live?
+    # TODO: I'm not really sure if this makes sense anymore
     if args.datadir:
         datadir = args.datadir
         if not os.path.exists(datadir):
             exitmsg("given data point path '{}' does not exist".format(datadir))
-    # if not given on the command line, assume that the data
-    # points live in the same directory as the summary file
-    else:
-        datadir = os.path.dirname(os.path.abspath(sumfile))
     # use Z threshold from the command line, if provided
     if args.sdev:
         if args.sdev < 0:
@@ -356,11 +383,30 @@ def main():
     else:
         zthresh = DEFAULT_Z_THRESH
 
-    # we'll use the header line when we write out the new files
-    print("processing summary file")
-    point, samples = process_file(sumfile,datadir,zthresh)
-    print("graphing the most representative data point file")
-    graph_one(point,samples)
+    num_files = len(args.summary_files)
+    points, samples = list(), list()
+    for i,f in enumerate(args.summary_files):
+        print("processing summary file {:3d} of {}: {}" \
+                .format(i+1,num_files,os.path.basename(f)))
+        # if not given on the command line, assume that the data
+        # points live in the same directory as the summary file
+        if not args.datadir:
+            datadir = os.path.dirname(os.path.abspath(f))
+        p, s = process_file(f,datadir,zthresh)
+        points.append(p)
+        samples.append(s)
+
+    style.use('bmh')
+    if num_files == 1:
+        print("graphing most representative data file")
+        graph_one(points[0],samples[0])
+    else:
+        plt.title('Best Points')
+        for p,s in zip(points,samples):
+            add_to_multigraph(p,s)
+        plt.legend(loc='upper left')
+        create_stiff_table(points)
+
     try:
         plt.show()
     # cleaner handling of keyboard interrupt while plotting
