@@ -1,22 +1,15 @@
-# -*- coding: utf-8 -*-
+#!/usr/bin/env python3
 """
 Created on Thu Apr 14 20:18:13 2016
 
 @author: jgairjr
 """
-import math as m
-import numpy as np
-import scipy as sp
 import matplotlib as mpl
 import matplotlib.pyplot as plt
-import csv
 from matplotlib import style
-import pylab as pl
 from collections import defaultdict
 from statistics import mean, stdev
-import codecs
-import glob
-import os
+import os, codecs, glob
 
 
 class FreqData:
