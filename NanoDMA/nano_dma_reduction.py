@@ -150,7 +150,7 @@ def write_summary_file(filename,stats,sep='\t'):
             for mean,sdev in stats[freq]:
                 outline += "{}\t{}\t".format(mean,sdev)
             # replace the last tab with a newline
-            outline[-1] = '\n'
+            outline = outline[:-1] + '\n'
             f.write(outline)
 
 
