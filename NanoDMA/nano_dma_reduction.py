@@ -8,14 +8,18 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 from matplotlib import style
 from collections import defaultdict
-from statistics import mean, stdev
-import sys, os, codecs, glob
+import sys, os, codecs, glob, statistics
 from argparse import ArgumentParser
 
 # If using Spyder instead of command line, set these variables appropriately
 USING_SPYDER = False # set to True if using Spyder
 SPYDER_DATA_PATH = None # set to path of directory where files live
 SPYDER_OUTPUT_NAME = None # base name of output file
+
+# Any files in the given directory that should NOT be processed should
+# be added to this list. There is no need to specify the entire path; just
+# the base filename will work
+EXCLUDES = ['example.csv']
 
 # Reading the input files fails unless this encoding is used. The encoding
 # seems to correspond to a codepage from Windows called Latin 1, but it is not
@@ -94,7 +98,7 @@ def process_input_file(filename,freqdata):
                 # with that frequency to the list of FreqData objects
                 freqdata[freq].append(FreqData(freq,stor,loss,comp,tand,damp))
             except ValueError as e:
-                exitmsg('error in {} at line {}: {}'.format(filename, lineno,e))
+                exitmsg('error in {} at line {}: {}'.format(filename,i+1,e))
 
 
 def compute_stats(data):
@@ -105,7 +109,7 @@ def compute_stats(data):
 
     @return mean(data), stdev(data)
     '''
-    return mean(data), stdev(data)
+    return statistics.mean(data), statistics.stdev(data)
 
 
 def write_summary_header(outfile,sep='\t'):
@@ -194,6 +198,8 @@ def main():
     Actually runs the program
     '''
     source_dir, outfile, verbose = process_arguments()
+    # also want to exclude our output file
+    excludes = EXCLUDES + [os.path.basename(outfile)]
 
     # frequencies is a dictionary where each key is
     # a single frequency and each value is a list
@@ -202,6 +208,8 @@ def main():
     if len(infiles) == 0:
         exitmsg("No input files found in given input directory {}".format(source_dir))
     for filename in infiles:
+        # skip files that should not be processed
+        if os.path.basename(filename) in excludes: continue
         if verbose: print("processing {}".format(filename))
         process_input_file(filename,frequencies)
     if len(frequencies) == 0:
