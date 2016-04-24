@@ -269,20 +269,17 @@ def process_file(filename,datadir,zthresh,write_out=True):
     best_score = float('inf')
     best_point = None
     best_samples = list()
-    print("finding best representative data point file")
     for p in valid_points:
         # NOTE: This is an extremely naive way to compute a similarity
         # score. Once a better way has been determined, this will need
         # to be updated.
-        datapath = "{}/{}".format(datadir,p.fname)
-        samples = read_datapoint_file(datapath)
-        mean,_ = calculate_stats([x.depth for x in samples])
-        score = abs(mean - depth_mean)
+        score = abs(p.stiff - stiff_mean)
         if score < best_score:
             best_score = score
             best_point = p
-            best_samples = samples
-    return best_point,best_samples
+    datapath = "{}/{}".format(datadir,best_point.fname)
+    samples = read_datapoint_file(datapath)
+    return best_point, samples
 
 
 def add_to_multigraph(point,samples):
