@@ -347,13 +347,30 @@ def graph_one(point,samples):
     rateplot1.set_xlabel('Time (s)')
 
 
+def read_list_file(filename):
+    '''
+    Reads a list of summary file paths
+
+    @param filename     Name of the file containing summary file paths
+
+    @return list of summary file paths
+    '''
+    if not os.path.exists(filename):
+        exitmsg("given list file '{}' does not exist".format(filename))
+    files = list()
+    with open(filename) as f:
+        for line in f:
+            if line == '' or line == '\n': continue
+            files.append(line.strip())
+    return files
+
+
 def main():
     # argument parsing and processing
     p = ArgumentParser()
-    p.add_argument('summary_files',type=str,nargs='+')
-    p.add_argument('-d','--data-dir',action='store',dest='datadir',type=str,
-            help='directory containing data points ' \
-                 '(defaults to same directory as summary file)')
+    p.add_argument('summary_files',type=str,nargs='*')
+    p.add_argument('-f','--file-list',action='store',dest='filelist',type=str,
+            help='path to file that indicates locations of summary files')
     p.add_argument('-p','--pval',action='store',dest='pval',type=float,
             help='p-value threshold for outlier data points')
     p.add_argument('-s','--sdev',action='store',dest='sdev',type=float,
@@ -362,12 +379,6 @@ def main():
     if args.pval and args.sdev:
         exitmsg("--pval and --sdev are not compatible")
 
-    # where do the data point files live?
-    # TODO: I'm not really sure if this makes sense anymore
-    if args.datadir:
-        datadir = args.datadir
-        if not os.path.exists(datadir):
-            exitmsg("given data point path '{}' does not exist".format(datadir))
     # use Z threshold from the command line, if provided
     if args.sdev:
         if args.sdev < 0:
@@ -383,15 +394,22 @@ def main():
     else:
         zthresh = DEFAULT_Z_THRESH
 
-    num_files = len(args.summary_files)
+    if not (args.filelist or args.summary_files):
+        exitmsg("must supply either summary file path or -f/--file-list")
+    if args.filelist and args.summary_files:
+        existmsg("incompatible arguments: summary_files and -f/--file-list")
+
+    if args.summary_files:
+        summary_files = args.summary_files
+    else:
+        summary_files = read_list_file(args.filelist)
+
+    num_files = len(summary_files)
     points, samples = list(), list()
-    for i,f in enumerate(args.summary_files):
+    for i,f in enumerate(summary_files):
         print("processing summary file {:3d} of {}: {}" \
                 .format(i+1,num_files,os.path.basename(f)))
-        # if not given on the command line, assume that the data
-        # points live in the same directory as the summary file
-        if not args.datadir:
-            datadir = os.path.dirname(os.path.abspath(f))
+        datadir = os.path.dirname(os.path.abspath(f))
         p, s = process_file(f,datadir,zthresh)
         points.append(p)
         samples.append(s)
