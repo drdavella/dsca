@@ -146,7 +146,7 @@ def write_summary_file(filename,stats,sep='\t'):
         write_summary_header(f,sep)
         frequencies = sorted(stats.keys())
         for freq in frequencies:
-            outline = ""
+            outline = "{}\t".format(freq)
             for mean,sdev in stats[freq]:
                 outline += "{}\t{}\t".format(mean,sdev)
             # replace the last tab with a newline
