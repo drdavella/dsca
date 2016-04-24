@@ -121,6 +121,10 @@ def read_summary_file(filename):
             # assume that a parsing error means we got a bad line
             except ValueError:
                 continue
+            # any other error means something went horribly wrong
+            except Exception as e:
+                s = "problem encountered parsing '{}': {}".format(filename,str(e))
+                exitmsg(s)
             data.append(DataLine(filename,depth,stiffness,hardness,line.strip()))
     return (header,data)
 
@@ -175,6 +179,10 @@ def read_datapoint_file(filename):
             # assume that a parsing error means we have a bad line
             except ValueError:
                 continue
+            # any other error means something went horribly wrong
+            except Exception as e:
+                s = "problem encountered parsing '{}': {}".format(filename,str(e))
+                exitmsg(s)
             ds = DataSample(time,depth,load)
             samples.append(ds)
     return samples
