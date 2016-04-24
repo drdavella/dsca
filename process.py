@@ -121,6 +121,8 @@ def read_summary_file(filename):
             # assume that a parsing error means we got a bad line
             except ValueError:
                 continue
+            except IndexError:
+                print("skipping line: '{}'".format(line))
             data.append(DataLine(filename,depth,stiffness,hardness,line.strip()))
     return (header,data)
 
