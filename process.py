@@ -121,8 +121,6 @@ def read_summary_file(filename):
             # assume that a parsing error means we got a bad line
             except ValueError:
                 continue
-            except IndexError:
-                print("skipping line: '{}'".format(line))
             data.append(DataLine(filename,depth,stiffness,hardness,line.strip()))
     return (header,data)
 
@@ -370,6 +368,8 @@ def main():
     p.add_argument('summary_files',type=str,nargs='*')
     p.add_argument('-f','--file-list',action='store',dest='filelist',type=str,
             help='path to file that indicates locations of summary files')
+    p.add_argument('-d','--data-suffix',action='store',dest='data_suffix',type=str,
+            help='suffix to be added to path for finding data files')
     p.add_argument('-p','--pval',action='store',dest='pval',type=float,
             help='p-value threshold for outlier data points')
     p.add_argument('-s','--sdev',action='store',dest='sdev',type=float,
@@ -411,6 +411,8 @@ def main():
         print("processing summary file {:3d} of {}: {}" \
                 .format(i+1,num_files,os.path.basename(f)))
         datadir = os.path.dirname(os.path.abspath(f))
+        if args.data_suffix:
+            datadir = "{}/{}".format(datadir,args.data_suffix)
         p, s, header = process_file(f,datadir,zthresh)
         points.append(p)
         samples.append(s)
