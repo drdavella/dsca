@@ -279,7 +279,7 @@ def process_file(filename,datadir,zthresh,write_out=True):
             best_point = p
     datapath = "{}/{}".format(datadir,best_point.fname)
     samples = read_datapoint_file(datapath)
-    return best_point, samples
+    return best_point, samples, header
 
 
 def add_to_multigraph(point,samples):
@@ -398,8 +398,10 @@ def main():
 
     if args.summary_files:
         summary_files = args.summary_files
+        outsum = "."
     else:
         summary_files = read_list_file(args.filelist)
+        outsum = os.path.dirname(args.filelist)
 
     num_files = len(summary_files)
     points, samples = list(), list()
@@ -407,7 +409,7 @@ def main():
         print("processing summary file {:3d} of {}: {}" \
                 .format(i+1,num_files,os.path.basename(f)))
         datadir = os.path.dirname(os.path.abspath(f))
-        p, s = process_file(f,datadir,zthresh)
+        p, s, header = process_file(f,datadir,zthresh)
         points.append(p)
         samples.append(s)
 
@@ -420,6 +422,9 @@ def main():
         for p,s in zip(points,samples):
             add_to_multigraph(p,s)
         plt.legend(loc='upper left')
+        outfile = "{}/{}".format(outsum,"quasi_compilation.csv")
+        write_summary_file(outfile,points,header)
+        # this currently does nothing
         create_stiff_table(points)
 
     try:
